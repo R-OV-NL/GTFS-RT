@@ -4,16 +4,16 @@
  * Questions? Email: tristantriest@gmail.com
  */
 
-import {transit_realtime} from '../Compiled/compiled';
+import { transit_realtime } from '../Compiled/compiled';
 
 import TripDescriptor = transit_realtime.TripDescriptor;
 import ScheduleRelationship = transit_realtime.TripDescriptor.ScheduleRelationship;
-import {IDatabaseRitInfoUpdate} from "../Interfaces/DatabaseRitInfoUpdate";
-import {RitInfoUpdate} from "./RitInfoUpdate";
+import { IDatabaseRitInfoUpdate } from "../Interfaces/DatabaseRitInfoUpdate";
+import { RitInfoUpdate } from "./RitInfoUpdate";
 import FeedEntity = transit_realtime.FeedEntity;
-import {TripIdWithDate} from "../Interfaces/TVVManager";
+import { TripIdWithDate } from "../Interfaces/TVVManager";
 import TripUpdate = transit_realtime.TripUpdate;
-import {EInfoPlusAgency, InfoPlusAgency} from "../Shared/src/Types/API/V2/InfoPlus/Agency";
+import { EInfoPlusAgency, InfoPlusAgency } from "../Shared/src/Types/API/V2/InfoPlus/Agency";
 
 
 export class TrainUpdate extends TripUpdate {
@@ -42,7 +42,7 @@ export class TrainUpdate extends TripUpdate {
             trainNumber,
             destination
         } = createdTrip;
-        let {tripId, stopTimeUpdates, routeId, agencyId, routeType } = createdTrip;
+        let { tripId, stopTimeUpdates, routeId, agencyId, routeType } = createdTrip;
 
         let customTripId = false;
 
@@ -51,22 +51,22 @@ export class TrainUpdate extends TripUpdate {
             customTripId = true;
         }
 
-        if(!agencyId) {
+        if (!agencyId) {
             agencyId = InfoPlusAgency.toAgencyId(infoPlusTripUpdate.agency as unknown as EInfoPlusAgency);
             // console.log(`[TrainUpdate] AgencyId not found for trip ${tripId}. Using agency from InfoPlus: ${infoPlusTripUpdate.agency} -> ${agencyId}`);
         }
 
-        if(!routeId) {
+        if (!routeId) {
             routeId = `${infoPlusTripUpdate.agency}_${infoPlusTripUpdate.trainType}_${trainNumber}`;
             // console.log(`[TrainUpdate] RouteId not found for trip ${tripId}. Using custom routeId: ${routeId}`);
         }
 
-        if(!routeType) {
-            if(infoPlusTripUpdate.trainType.includes("MTS") || infoPlusTripUpdate.trainType.includes("MTR") || infoPlusTripUpdate.trainType.includes("NSM"))
+        if (!routeType) {
+            if (infoPlusTripUpdate.trainType.includes("MTS") || infoPlusTripUpdate.trainType.includes("MTR") || infoPlusTripUpdate.trainType.includes("NSM"))
                 routeType = 1;
-            else if(infoPlusTripUpdate.trainType.includes("NST"))
+            else if (infoPlusTripUpdate.trainType.includes("NST"))
                 routeType = 0;
-            else if(trainNumber > 900_000)
+            else if (trainNumber > 900_000)
                 routeType = 3;
             else
                 routeType = 2;
@@ -96,9 +96,9 @@ export class TrainUpdate extends TripUpdate {
 
             //For these special trains there can be duplicate stops, so we need to remove them. Only keep one stop with the same stopId.
             stopTimeUpdates = stopTimeUpdates.filter((stopTimeUpdate, index, self) =>
-                    index === self.findIndex((t) => (
-                        t.stopId === stopTimeUpdate.stopId
-                    ))
+                index === self.findIndex((t) => (
+                    t.stopId === stopTimeUpdate.stopId
+                ))
             )
         }
 
@@ -133,7 +133,7 @@ export class TrainUpdate extends TripUpdate {
             directionId,
             scheduleRelationship,
             ".transit_realtime.ovapiTripdescriptor": {
-                realtimeTripId: "IFF:" + trainType + ":" + trainNumber,
+                realtimeTripId: "IFF:" + trainType + ":" + (infoPlusTripUpdate.customRealtimeTripId ? infoPlusTripUpdate.customRealtimeTripId : trainNumber),
             },
             ".transit_realtime.tripDescriptor": {
                 agencyId: agencyId,

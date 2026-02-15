@@ -1,23 +1,23 @@
 {
   "compilerOptions": {
     // Enable latest features
-    "lib": ["ESNext", "DOM"],
+    "lib": [
+      "ESNext",
+      "DOM"
+    ],
     "target": "ESNext",
     "module": "ESNext",
     "moduleDetection": "force",
     "allowJs": true,
-
     // Bundler mode
     "moduleResolution": "node",
-//    "allowImportingTsExtensions": true,
-//    "verbatimModuleSyntax": true,
+    //    "allowImportingTsExtensions": true,
+    //    "verbatimModuleSyntax": true,
     "noEmit": true,
-
     // Best practices
     "strict": false,
     "skipLibCheck": true,
     "noFallthroughCasesInSwitch": true,
-
     // Some stricter flags
     "noUnusedLocals": false,
     "noUnusedParameters": false,
@@ -35,15 +35,20 @@
     "synchronousWatchDirectory": true,
     // Finally, two additional settings for reducing the amount of possible
     // files to track  work from these directories
-    "excludeDirectories": ["**/node_modules", "/build"],
-    "excludeFiles": ["build/**/*.js", "build/**/*.d.ts"]
+    "excludeDirectories": [
+      "**/node_modules",
+      "/build"
+    ],
+    "excludeFiles": [
+      "build/**/*.js",
+      "build/**/*.d.ts"
+    ]
   },
   "include": [
     "./src",
     "./bun.d.ts",
   ],
   "exclude": [
-    "**/test/**",
     "node_modules",
     "**/node_modules/**",
     "**/__tests__/**",
