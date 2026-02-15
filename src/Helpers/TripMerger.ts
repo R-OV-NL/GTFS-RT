@@ -127,6 +127,30 @@ export class TripMerger {
                 // Replace the two stops with the merged stop
                 mergedTrip.stops.splice(indexOfConnectionStop, 2, mergedStop);
 
+                // Fix non-increasing times by propagating delay from the connection point onwards
+                for (let j = indexOfConnectionStop; j < mergedTrip.stops.length; j++) {
+                    const currentStop = mergedTrip.stops[j];
+                    const previousStop = mergedTrip.stops[j - 1];
+                    if (!previousStop) continue;
+
+                    const prevDept = dayjs(previousStop.departureTime || previousStop.plannedDepartureTime);
+                    let currArr = dayjs(currentStop.arrivalTime || currentStop.plannedArrivalTime);
+
+                    // Ensure at least 30 seconds between stops to avoid GTFS-RT validation issues and overlapping times
+                    if (currArr.isBefore(prevDept.add(30, 'seconds'))) {
+                        const newArr = prevDept.add(30, 'seconds');
+                        console.log(`[TripMerger] Fixing non-increasing time for merged trip ${mergedTrip.customRealtimeTripId} at ${currentStop.stationCode}: ${currArr.toISOString()} -> ${newArr.toISOString()} (Reason: Adjacency to previous departure ${prevDept.toISOString()})`);
+
+                        const diffSeconds = newArr.diff(currArr, 'seconds');
+                        currentStop.arrivalTime = newArr.toISOString();
+
+                        // Also push the departure time forward by the same amount if it exists
+                        if (currentStop.departureTime) {
+                            currentStop.departureTime = dayjs(currentStop.departureTime).add(diffSeconds, 'seconds').toISOString();
+                        }
+                    }
+                }
+
                 // Recalculate stop sequence for the merged trip
                 mergedTrip.stops = mergedTrip.stops.map((stop, index) => ({
                     ...stop,
@@ -140,6 +164,7 @@ export class TripMerger {
                 // Mark trip B as cancelled
                 const cancelledTripB: IDatabaseRitInfoUpdate = {
                     ...tripB,
+                    stops: [], // Clear stops to avoid log noise and reduce feed size
                     changes: [...(tripB.changes || []), {
                         changeType: LogicalJourneyChangeType.Cancelled,
                     } as any]
