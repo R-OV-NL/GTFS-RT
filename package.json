@@ -30,7 +30,6 @@
     "google-protobuf": "^3.21.2",
     "gtfs-realtime-bindings": "^1.1.1",
     "knex": "^2.4.0",
-    "moment-timezone": "^0.5.40",
     "ncp": "^2.0.0",
     "node-fetch": "^3.3.0",
     "pg": "^8.8.0"

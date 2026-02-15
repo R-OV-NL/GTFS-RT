@@ -14,7 +14,12 @@ import { transit_realtime } from "../Compiled/compiled";
 import { IInfoPlusRepository } from "../Interfaces/Repositories/InfoplusRepository";
 import { IFeedManager } from "../Interfaces/Services/UpdateTrainFeed";
 import FeedMessage = transit_realtime.FeedMessage;
-import moment from "moment-timezone";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone";
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 /**
  * Singleton class that handles updating (for now only) the train feed.
@@ -40,20 +45,20 @@ export class FeedManager implements IFeedManager {
         console.time('Updating train feed...');
         console.log('Updating train feed...')
         //Get the current operationDate in YYYY-MM-DD format
-        const currentOperationDate = moment()
+        const currentOperationDate = dayjs()
             .tz('Europe/Amsterdam')
             .format('YYYY-MM-DD');
 
-        const operationDateTomorrow = moment(currentOperationDate)
+        const operationDateTomorrow = dayjs(currentOperationDate)
             .add(1, 'days')
             .format('YYYY-MM-DD')
 
-        const operationDateYesterday = moment(currentOperationDate)
+        const operationDateYesterday = dayjs(currentOperationDate)
             .subtract(1, 'days')
             .format('YYYY-MM-DD')
 
         //Get the operationDate 3 days from now in YYYY-MM-DD format
-        const endOperationDate = moment(currentOperationDate)
+        const endOperationDate = dayjs(currentOperationDate)
             .add(3, 'days')
             .format('YYYY-MM-DD')
 
@@ -61,12 +66,12 @@ export class FeedManager implements IFeedManager {
         let operationDateOfYesterdayOrToday = currentOperationDate;
 
         //Check if the current time is between 00:00 and 04:00, if so, set the current operationDate to yesterday.
-        if (moment().tz('Europe/Amsterdam').hour() < 4) {
+        if (dayjs().tz('Europe/Amsterdam').hour() < 4) {
             operationDateOfYesterdayOrToday = operationDateYesterday;
         }
 
         //Check if the current time is after 22:00, if so, set the current operationDate to tomorrow.
-        if (moment().tz('Europe/Amsterdam').hour() >= 22) {
+        if (dayjs().tz('Europe/Amsterdam').hour() >= 22) {
             operationDateOfTodayOrTomorrow = operationDateTomorrow;
         }
 
