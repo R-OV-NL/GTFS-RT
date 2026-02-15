@@ -4,9 +4,9 @@
  * Questions? Email: tristantriest@gmail.com
  */
 
-import {Collection} from "./General/Collection";
-import {StopUpdate} from "./StopUpdates/StopUpdate";
-import {RitInfoStopUpdate} from "./StopUpdates/RitinfoStopUpdate";
+import { Collection } from "./General/Collection";
+import { StopUpdate } from "./StopUpdates/StopUpdate";
+import { RitInfoStopUpdate } from "./StopUpdates/RitinfoStopUpdate";
 
 export class StopUpdateCollection extends Collection<RitInfoStopUpdate> {
 
@@ -128,7 +128,7 @@ export class StopUpdateCollection extends Collection<RitInfoStopUpdate> {
         const previousStopScheduledDeparture = previousStop.plannedDepartureTime ?? previousStop.departureTimeAsDate;
         const currentStopScheduledArrival = stopToFix.plannedArrivalTime ?? stopToFix.arrivalTimeAsDate;
 
-        if(previousStopScheduledDeparture == null || currentStopScheduledArrival == null) {
+        if (previousStopScheduledDeparture == null || currentStopScheduledArrival == null) {
             console.warn(`[StopUpdateCollection ${this.tripId}] Cannot fix hop time for stop ${stopToFix.stopId}: ${stopToFix.name} [${stopToFix.sequence}]. Missing planned times.`);
             return;
         }
@@ -247,7 +247,7 @@ export class StopUpdateCollection extends Collection<RitInfoStopUpdate> {
 
     }
 
-    public get destination(): string {
+    public get destination(): string | null {
         //Get the last stop before only cancelled stops.
         const lastStopBeforeOnlyCancelledStops = this.findLastStopBeforeOnlyCancelledStops();
 
@@ -256,6 +256,6 @@ export class StopUpdateCollection extends Collection<RitInfoStopUpdate> {
 
         //If all stops are cancelled, return the destination of the last stop.
         const lastStop = this.last();
-        return lastStop.destination;
+        return lastStop?.destination ?? null;
     }
 }

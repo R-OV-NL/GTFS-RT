@@ -153,8 +153,8 @@ describe("TripMerger", () => {
         expect(cancelledTrip.trainNumber).toBe(200);
         expect(cancelledTrip.changes).toContainEqual(expect.objectContaining({ changeType: LogicalJourneyChangeType.Cancelled }));
 
-        // Cancelled trip should still have stops to avoid crash
-        expect(cancelledTrip.stops).not.toHaveLength(0);
+        // Cancelled trip should have no stops to avoid log noise and reduce feed size
+        expect(cancelledTrip.stops).toHaveLength(0);
     });
 
     it("should NOT merge trips if material number doesn't match", () => {
