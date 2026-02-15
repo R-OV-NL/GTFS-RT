@@ -24,6 +24,7 @@
   "homepage": "https://github.com/R-OV-NL/Protobuf#readme",
   "dependencies": {
     "@protobuf-ts/plugin": "^2.9.1",
+    "dayjs": "^1.11.10",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "google-protobuf": "^3.21.2",
