@@ -122,6 +122,12 @@ export class TripMerger {
                 // Replace the two stops with the merged stop
                 mergedTrip.stops.splice(indexOfConnectionStop, 2, mergedStop);
 
+                // Recalculate stop sequence for the merged trip
+                mergedTrip.stops = mergedTrip.stops.map((stop, index) => ({
+                    ...stop,
+                    sequence: index + 1
+                }));
+
                 console.log(`[TripMerger] Merged train ${update.trainNumber} and train ${tripB.trainNumber} into ${mergedTrip.customRealtimeTripId} at station ${mergedStop.stationCode} track ${mergedStop.actualTrack || mergedStop.plannedTrack}. Material: ${update.materialNumbers?.join(', ')}`);
 
                 mergedTrips.push(mergedTrip);
