@@ -33,7 +33,12 @@ export class TripMerger {
         // Iterate over all material numbers and check if we can merge trips.
         for (const [materialNumber, trips] of tripsByMaterialNumber) {
             // Sort trips by time
-            trips.sort((a, b) => a.operationDate.getTime() - b.operationDate.getTime() || a.trainNumber - b.trainNumber);
+            // Sort trips by time
+            trips.sort((a, b) => {
+                const timeA = dayjs(a.stops[0].departureTime || a.stops[0].plannedDepartureTime || a.stops[0].arrivalTime || a.stops[0].plannedArrivalTime).unix();
+                const timeB = dayjs(b.stops[0].departureTime || b.stops[0].plannedDepartureTime || b.stops[0].arrivalTime || b.stops[0].plannedArrivalTime).unix();
+                return a.operationDate.getTime() - b.operationDate.getTime() || timeA - timeB || a.trainNumber - b.trainNumber;
+            });
 
             for (let i = 0; i < trips.length - 1; i++) {
                 const tripA = trips[i];
