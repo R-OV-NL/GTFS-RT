@@ -5,7 +5,7 @@
  */
 
 import { IDatabaseRitInfoUpdate } from "../Interfaces/DatabaseRitInfoUpdate";
-import moment from "moment-timezone";
+import dayjs from "dayjs";
 import { LogicalJourneyChangeType } from "../Shared/src/Types/Infoplus/V2/Changes/LogicalJourneyChangeType";
 import { LogicalJourneyPartStationChangeType } from "../Shared/src/Types/Infoplus/V2/Changes/LogicalJourneyPartStationChangeType";
 
@@ -56,8 +56,8 @@ export class TripMerger {
 
                 if (lastStopA.stationCode === firstStopB.stationCode) {
                     // Check if the time difference is less than 15 minutes
-                    const arrivalTimeA = moment(lastStopA.arrivalTime || lastStopA.plannedArrivalTime);
-                    const departureTimeB = moment(firstStopB.departureTime || firstStopB.plannedDepartureTime);
+                    const arrivalTimeA = dayjs(lastStopA.arrivalTime || lastStopA.plannedArrivalTime);
+                    const departureTimeB = dayjs(firstStopB.departureTime || firstStopB.plannedDepartureTime);
 
                     const diff = departureTimeB.diff(arrivalTimeA, 'minutes');
 
@@ -121,6 +121,12 @@ export class TripMerger {
 
                 // Replace the two stops with the merged stop
                 mergedTrip.stops.splice(indexOfConnectionStop, 2, mergedStop);
+
+                // Recalculate stop sequence for the merged trip
+                mergedTrip.stops = mergedTrip.stops.map((stop, index) => ({
+                    ...stop,
+                    sequence: index + 1
+                }));
 
                 console.log(`[TripMerger] Merged train ${update.trainNumber} and train ${tripB.trainNumber} into ${mergedTrip.customRealtimeTripId} at station ${mergedStop.stationCode} track ${mergedStop.actualTrack || mergedStop.plannedTrack}. Material: ${update.materialNumbers?.join(', ')}`);
 
