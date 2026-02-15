@@ -5,7 +5,7 @@
  */
 
 import { IDatabaseRitInfoUpdate } from "../Interfaces/DatabaseRitInfoUpdate";
-import moment from "moment-timezone";
+import dayjs from "dayjs";
 import { LogicalJourneyChangeType } from "../Shared/src/Types/Infoplus/V2/Changes/LogicalJourneyChangeType";
 import { LogicalJourneyPartStationChangeType } from "../Shared/src/Types/Infoplus/V2/Changes/LogicalJourneyPartStationChangeType";
 
@@ -56,8 +56,8 @@ export class TripMerger {
 
                 if (lastStopA.stationCode === firstStopB.stationCode) {
                     // Check if the time difference is less than 15 minutes
-                    const arrivalTimeA = moment(lastStopA.arrivalTime || lastStopA.plannedArrivalTime);
-                    const departureTimeB = moment(firstStopB.departureTime || firstStopB.plannedDepartureTime);
+                    const arrivalTimeA = dayjs(lastStopA.arrivalTime || lastStopA.plannedArrivalTime);
+                    const departureTimeB = dayjs(firstStopB.departureTime || firstStopB.plannedDepartureTime);
 
                     const diff = departureTimeB.diff(arrivalTimeA, 'minutes');
 
