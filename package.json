@@ -4,7 +4,7 @@
   "description": "The Protobuf converter for the R-OV OTP instance.",
   "main": "src/main.ts",
   "scripts": {
-    "test": "echo \"Error: no tests specified\" && exit 0",
+    "test": "bun test",
     "start": "node ./dist/main.js",
     "dev": "nodemon --watch",
     "build": "babel src --out-dir dist",

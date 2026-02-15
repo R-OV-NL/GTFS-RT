@@ -4,9 +4,9 @@
  * Questions? Email: tristantriest@gmail.com
  */
 
-import {Repository} from "./Repository";
-import {IDatabaseRitInfoUpdate} from "../Interfaces/DatabaseRitInfoUpdate";
-import {IInfoPlusRepository} from "../Interfaces/Repositories/InfoplusRepository";
+import { Repository } from "./Repository";
+import { IDatabaseRitInfoUpdate } from "../Interfaces/DatabaseRitInfoUpdate";
+import { IInfoPlusRepository } from "../Interfaces/Repositories/InfoplusRepository";
 
 export class InfoplusRepository extends Repository implements IInfoPlusRepository {
 
@@ -14,28 +14,7 @@ export class InfoplusRepository extends Repository implements IInfoPlusRepositor
     public async getCurrentRealtimeTripUpdates(operationDateOfTodayOrYesterday: string, operationDateOfTodayOrTomorrow: string, endOperationDate: string): Promise<IDatabaseRitInfoUpdate[]> {
         console.time('getCurrentRealtimeTripUpdates');
         return this.database.raw(`
-            WITH cal_dates AS (SELECT DISTINCT "serviceId", "date"
-                               FROM "StaticData-NL".calendar_dates
-                               WHERE "date" >= :operationDateOfTodayOrYesterday::date
-                AND date <= :endOperationDate::date),
-                trips AS (SELECT "tripId", "routeId", "directionId", "tripShortName", "shapeId", "serviceId"
-            FROM "StaticData-NL".trips
-            WHERE agency = 'IFF'
-              AND "serviceId" IN (SELECT DISTINCT "serviceId"
-                FROM cal_dates)),
-                stops AS (SELECT "stopId", upper(replace("zoneId", 'IFF:', '')) AS "stationCode", "platformCode", "stopName"
-            FROM "StaticData-NL".stops
-            WHERE stops."zoneId" IS NOT NULL AND stops."zoneId" LIKE 'IFF%'),
-                trip_first_stops AS (
-            SELECT DISTINCT ON (st.trip_id)
-                st.trip_id::int AS trip_id,
-                upper(replace(s."zoneId", 'IFF:', '')) AS first_station_code
-            FROM "StaticData-NL".stop_times st
-            JOIN "StaticData-NL".stops s ON st.stop_id = s."stopId"
-            WHERE s."zoneId" IS NOT NULL AND s."zoneId" LIKE 'IFF%'
-            ORDER BY st.trip_id, st.stop_sequence
-                ),
-                journey_part_first_stops AS (
+            WITH journey_part_first_stops AS (
             SELECT DISTINCT ON (si."journeyNumber", si."journeyPartNumber", si."operationDate")
                 si."journeyNumber",
                 si."journeyPartNumber",
@@ -45,6 +24,11 @@ export class InfoplusRepository extends Repository implements IInfoPlusRepositor
             WHERE si."stopType" != 'N'
               AND (si."plannedWillStop" = true OR si."actualWillStop" = true)
             ORDER BY si."journeyNumber", si."journeyPartNumber", si."operationDate", si."stopOrder"
+                ),
+                material_parts_agg AS (
+            SELECT "journeyPartNumber", "operationDate", array_remove(array_agg(distinct "shortMaterialNumber"), NULL) AS "materialNumbers", "travelInformationProductId"
+            FROM "InfoPlus-new".material_parts
+            GROUP BY "journeyPartNumber", "operationDate", "travelInformationProductId"
                 )
             SELECT jpjl."journeyPartNumber"                                                              AS "trainNumber",
                    jpjl."shortJourneyPartNumber"                                                         AS "shortTrainNumber",
@@ -60,6 +44,7 @@ export class InfoplusRepository extends Repository implements IInfoPlusRepositor
                 rt."agencyId"                                                                         AS "agencyId",
                 rt."routeLongName"                                                                    AS "routeLongName",
                 coalesce(t."directionId", t_short."directionId")                                      AS "directionId",
+                COALESCE(MIN(mp."materialNumbers"), ARRAY[]::varchar[])                               AS "materialNumbers",
                 coalesce(t."shapeId", t_short."shapeId")                                              AS "shapeId",
                 jsonb_agg(
                 CASE
@@ -113,38 +98,36 @@ export class InfoplusRepository extends Repository implements IInfoPlusRepositor
                 ON jpfs."journeyNumber" = jpjl."journeyNumber"
                 AND jpfs."journeyPartNumber" = jpjl."journeyPartNumber"
                 AND jpfs."operationDate" = jpjl."operationDate"
-                LEFT JOIN (
-                    SELECT trips.*, tfs.first_station_code
-                    FROM trips
-                    JOIN trip_first_stops tfs ON tfs.trip_id = trips."tripId"
-                ) t ON jpjl."journeyPartNumber" = t."tripShortName"::int
-                AND EXISTS (SELECT 1
-                FROM cal_dates cd
-                WHERE cd."serviceId" = t."serviceId"
-                AND cd."date" = r."operationDate")
+
+                -- Optimization: Use Materialized View for Trip Lookup
+                LEFT JOIN "StaticData-NL".mv_active_schedule t
+                ON t.trip_number = jpjl."journeyPartNumber"
+                AND t.date = r."operationDate"
                 AND t.first_station_code = jpfs.first_station_code
 
-                LEFT JOIN (
-                    SELECT trips.*, tfs.first_station_code
-                    FROM trips
-                    JOIN trip_first_stops tfs ON tfs.trip_id = trips."tripId"
-                ) t_short ON t."tripId" IS NULL AND jpjl."shortJourneyPartNumber" = t_short."tripShortName"::int
-                AND EXISTS (SELECT 1
-                FROM cal_dates cd
-                WHERE cd."serviceId" = t_short."serviceId"
-                AND cd."date" = r."operationDate")
+                LEFT JOIN "StaticData-NL".mv_active_schedule t_short
+                ON t_short.trip_number = jpjl."shortJourneyPartNumber"
+                AND t_short.date = r."operationDate"
                 AND t_short.first_station_code = jpfs.first_station_code
-                LEFT JOIN stops s ON (s."stationCode" = si."stationCode" AND
+                AND t."tripId" IS NULL
+
+                -- Optimization: Use Materialized View for Stops Lookup
+                LEFT JOIN "StaticData-NL".iff_stops s ON (s."stationCode" = si."stationCode" AND
                 s."platformCode" =
                 coalesce(si."actualArrivalTracks", si."actualDepartureTracks", si."plannedArrivalTracks",
                 si."plannedDepartureTracks"))
                 LEFT JOIN LATERAL (
                 SELECT "stopId", "stopName"
-                FROM stops lax
+                FROM "StaticData-NL".iff_stops lax
                 WHERE lax."stationCode" = si."stationCode"
                 LIMIT 1
                 ) AS lateral_stop ON s."stopId" IS NULL
+
                 LEFT JOIN "StaticData-NL".routes rt ON rt."routeId" = coalesce(t."routeId", t_short."routeId")
+
+                -- Use CTE for material parts to PREVENT DUPLICATE STOPS (Cartesian product)
+                LEFT JOIN material_parts_agg mp ON mp."journeyPartNumber" = jpjl."journeyPartNumber" AND mp."operationDate" = jpjl."operationDate" AND mp."travelInformationProductId" = r."travelInformationProductId"
+
             WHERE r."operationDate" >= :operationDateOfTodayOrYesterday::date
               AND NOT (
                 r."operationDate" > :operationDateOfTodayOrTomorrow::date
@@ -172,7 +155,7 @@ export class InfoplusRepository extends Repository implements IInfoPlusRepositor
      * @param date The date to check for.
      */
     public async getTripIdsForTVVNotInInfoPlus(TVVTrainNumbers: number[], date: string): Promise<number[]> {
-        if(TVVTrainNumbers.length === 0)
+        if (TVVTrainNumbers.length === 0)
             return [];
 
         const trainNumberPlaceHolders = TVVTrainNumbers.map(() => "?").join(",")
