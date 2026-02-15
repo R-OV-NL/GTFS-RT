@@ -5,8 +5,8 @@
  */
 
 import { IDatabaseStopUpdate } from "./DatabaseStopUpdate";
-import {IJourneyChange} from "../Shared/src/Types/Infoplus/V2/JourneyChange";
-import {LogicalJourneyChangeType} from "../Shared/src/Types/Infoplus/V2/Changes/LogicalJourneyChangeType";
+import { IJourneyChange } from "../Shared/src/Types/Infoplus/V2/JourneyChange";
+import { LogicalJourneyChangeType } from "../Shared/src/Types/Infoplus/V2/Changes/LogicalJourneyChangeType";
 import {
     LogicalJourneyPartStationChangeType
 } from "../Shared/src/Types/Infoplus/V2/Changes/LogicalJourneyPartStationChangeType";
@@ -30,6 +30,8 @@ export interface IDatabaseRitInfoUpdate {
     changes: IJourneyChange<LogicalJourneyChangeType>[] | null;
     timestamp: Date;
     operationDate: Date;
+    materialNumbers: string[] | null;
+    customRealtimeTripId?: string;
 }
 
 export interface IRitInfoStopUpdate extends IDatabaseStopUpdate {
